@@ -12,5 +12,5 @@ void main(){
 	baseColor = texture2D(u_Texture0, v_TexCoordinate);
 	lightColor = texture2D(u_Texture1, v_TexCoordinate);
 	
-	gl_FragColor = baseColor * (lightColor + 0.25);
+	gl_FragColor = baseColor * (lightColor + 0.05);
 }
