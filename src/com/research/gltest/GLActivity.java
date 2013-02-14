@@ -10,6 +10,7 @@ import android.view.Window;
 
 public class GLActivity extends Activity {
 	GLSurfaceView mView;
+	private MenuItem			mItemCapture0;
 	private MenuItem			mItemCapture1;
 	private MenuItem			mItemCapture2;
 	private MenuItem			mItemCapture3;
@@ -50,6 +51,7 @@ public class GLActivity extends Activity {
     /**menu button setup*/
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+    	mItemCapture0 = menu.add("origin");
     	mItemCapture1 = menu.add("blurring");
     	mItemCapture2= menu.add("edge_detect");
     	mItemCapture3 = menu.add("emboss");
@@ -66,6 +68,10 @@ public class GLActivity extends Activity {
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+    	if (item == mItemCapture0){		
+    		GLLayer.shader_selection = 0;
+    		return true;
+    	}
     	if (item == mItemCapture1){		
     		GLLayer.shader_selection = GLLayer.BLUR;
     		return true;
