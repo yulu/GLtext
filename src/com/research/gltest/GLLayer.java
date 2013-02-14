@@ -85,6 +85,23 @@ public class GLLayer implements GLSurfaceView.Renderer {
 	/** This is a handle to our texture data. */
 	private int mTextureDataHandle0;
 	private int mTextureDataHandle1;
+	
+	/**
+	 * Shader Titles
+	 */
+	static public int shader_selection = 0;
+	static public final int BLUR = 1;
+	static public final int EDGE = 2;
+	static public final int EMBOSS = 3;
+	static public final int FILTER = 4;
+	static public final int FLIP = 5;
+	static public final int HUE = 6;
+	static public final int LUM = 7;
+	static public final int NEG = 8;
+	static public final int TOON = 9;
+	static public final int TWIRL = 10;
+	static public final int WARP = 11;
+	//and more ...
 
 	/**
 	 * Initialize the model data.
@@ -154,12 +171,27 @@ public class GLLayer implements GLSurfaceView.Renderer {
 
 	protected String getVertexShader() {
 		return RawResourceReader.readTextFileFromRawResource(mActivityContext,
-				R.raw.vertex_shader);
+				R.raw._vertex_shader);
 	}
 
 	protected String getFragmentShader() {
-		return RawResourceReader.readTextFileFromRawResource(mActivityContext,
-				R.raw.fragment_shader);
+		int id;
+		switch (shader_selection){
+			case BLUR: id = R.raw.blurring_fragment_shader; break;
+			case EDGE: id = R.raw.edge_detect_fragment_shader;break;
+			case EMBOSS: id = R.raw.emboss_fragment_shader;break;
+			case FILTER: id = R.raw.filter_fragment_shader;break;
+			case FLIP: id = R.raw.flip_fragment_shader;break;
+			case HUE: id = R.raw.hueshift_fragment_shader;break;
+			case LUM: id = R.raw.luminance_fragment_shader;break;
+			case NEG: id = R.raw.negative_fragment_shader;break;
+			case TOON: id = R.raw.toon_fragment_shader;break;
+			case TWIRL: id = R.raw.twirl_fragment_shader;break;
+			case WARP: id = R.raw.warp_fragment_shader;break;
+			default: id = R.raw._fragment_shader;break;
+		}
+		
+		return RawResourceReader.readTextFileFromRawResource(mActivityContext, id);
 	}
 
 	@Override
@@ -203,21 +235,10 @@ public class GLLayer implements GLSurfaceView.Renderer {
 		Matrix.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY,
 				lookZ, upX, upY, upZ);
 
-		final String vertexShader = getVertexShader();
-		final String fragmentShader = getFragmentShader();
-
-		final int vertexShaderHandle = ShaderHelper.compileShader(
-				GLES20.GL_VERTEX_SHADER, vertexShader);
-		final int fragmentShaderHandle = ShaderHelper.compileShader(
-				GLES20.GL_FRAGMENT_SHADER, fragmentShader);
-
-		mProgramHandle = ShaderHelper.createAndLinkProgram(vertexShaderHandle,
-				fragmentShaderHandle, new String[] { "a_Position",
-						"a_TexCoordinate" });
-
+		
 		// Load the texture
 		mTextureDataHandle0 = TextureHelper.loadTexture(mActivityContext,
-				R.drawable.picture1);
+				R.drawable.picture4);
 
 		// Load the texture
 		mTextureDataHandle1 = TextureHelper.loadTexture(mActivityContext,
@@ -247,6 +268,17 @@ public class GLLayer implements GLSurfaceView.Renderer {
 	@Override
 	public void onDrawFrame(GL10 glUnused) {
 		GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+		final String vertexShader = getVertexShader();
+		final String fragmentShader = getFragmentShader();
+
+		final int vertexShaderHandle = ShaderHelper.compileShader(
+				GLES20.GL_VERTEX_SHADER, vertexShader);
+		final int fragmentShaderHandle = ShaderHelper.compileShader(
+				GLES20.GL_FRAGMENT_SHADER, fragmentShader);
+
+		mProgramHandle = ShaderHelper.createAndLinkProgram(vertexShaderHandle,
+				fragmentShaderHandle, new String[] { "a_Position",
+						"a_TexCoordinate" });
 
 		// Set our per-vertex lighting program.
 		GLES20.glUseProgram(mProgramHandle);
