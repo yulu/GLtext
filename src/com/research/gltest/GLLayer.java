@@ -323,7 +323,7 @@ public class GLLayer implements GLSurfaceView.Renderer {
 
 		// Draw some cubes.
 		Matrix.setIdentityM(mModelMatrix, 0);
-		Matrix.translateM(mModelMatrix, 0, 0.0f, 0.0f, -2.6f);
+		Matrix.translateM(mModelMatrix, 0, 0.0f, 0.0f, -3.2f);
 		Matrix.rotateM(mModelMatrix, 0, 0.0f, 1.0f, 1.0f, 0.0f);
 		drawCube();
 	}

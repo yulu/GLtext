@@ -26,7 +26,7 @@ public class GLActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);   
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);   
         requestWindowFeature(Window.FEATURE_NO_TITLE);
        
         mView = new GLSurfaceView(this);
