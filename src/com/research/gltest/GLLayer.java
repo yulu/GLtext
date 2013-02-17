@@ -238,7 +238,7 @@ public class GLLayer implements GLSurfaceView.Renderer {
 		
 		// Load the texture
 		mTextureDataHandle0 = TextureHelper.loadTexture(mActivityContext,
-				R.drawable.picture4);
+				R.drawable.picture2);
 
 		// Load the texture
 		mTextureDataHandle1 = TextureHelper.loadTexture(mActivityContext,
