@@ -55,7 +55,7 @@ public class GLActivity extends Activity {
     	mItemCapture1 = menu.add("blurring");
     	mItemCapture2= menu.add("edge_detect");
     	mItemCapture3 = menu.add("emboss");
-    	mItemCapture4 = menu.add("fliter");
+    	mItemCapture4 = menu.add("filter");
     	mItemCapture5 = menu.add("flip");
     	mItemCapture6= menu.add("hue");
     	mItemCapture7 = menu.add("luminance");
