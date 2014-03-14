@@ -1,105 +1,167 @@
-##Having More Fun: Explore Instagram-like Filters with Photoshop and OpenGL ES Shaders
+##Having Fun: Image Processing with OpenGL ES Fragment Shaders
 By [LittleCheeseCake](http://littlecheesecake.me)
 
-I used to spend quite some time working with `Photoshop®`, to edit photos or do some digital painting. However I became too lazy to PS since I started to use smartphones. Apps like `Instagram®` seems to be able to do the processing job more efficiently and produce results that look surprisingly amazing (not considering the quality loss of the photo). After studying the OpenGL Shaders, I thought I should be enable to do mimic the filter effect using shaders, with those previous experience working with `Photoshop®`. I could first explore in `Photoshop®` to figure out the steps to take to produce the filter effect. Then I could implement it using OpenGL ES Shaders. After spending some time in research, I kind of found the way to duplicate the filter effect, might not be exactly the same, but the feeling is captured. Take the **Hudson** filter as an example, I summarized the work I have done.
+I have taken a very long time to get myself familiar with OpenGL ES Shaders. Finally I made some codes run and got some results that looked nice. The main area I want to explore is to use shaders to perform general purpose GPU computation (GPGPU). Here I summarize some image manipulation examples from the very popular textbook Graphics Shaders: theory and practice by Bailey and Cunningham[1]. The examples are made to be running on the Android phone.
 
-![hudson_in](http://littlecheesecake.files.wordpress.com/2013/02/hudson_in.png?w=260 "hudson_in")
+###I) Texture mapping using OpenGL ES 2.0
 
-### Working with `Photoshop®`
+Here[2] is a good online tutorial to get start with on OpenGL ES 2.0 for Android. A simple project of texture mapping is created. It basically maps an bitmap image to a square fragment that fits into the window size of the device. The fun things I am going to do start from this stage.
 
-Learned from a digital photography course in the college, the first thing we need to do when loading an photo into the Photoshop, is to adjust the level and curve. However I think level and curve adjusting is not that easy to implement in the shaders. How about a less effective but simpler way: adjust Brightness/Contrast/Saturation. All these three steps can be easily realized by blending the image with a base image (either a constant image or the luminanced image of itself). By simply doing these, the quality of the image can be improved quite a lot.
+![texture_rendering](http://littlecheesecake.files.wordpress.com/2013/01/texture_rendering.png?w=640)
 
-![bright and contrast](http://littlecheesecake.files.wordpress.com/2013/02/screen-shot-2013-02-17-at-11-49-56-pm.png "bright_and_contrast")
+###II) Basic Concepts
 
-![hue and satu](http://littlecheesecake.files.wordpress.com/2013/02/screen-shot-2013-02-17-at-11-48-58-pm.png?w=300 "hue_and_satu")
+GLSL deals with images by treating them as textures and using texture access and manipulation to set the color of each pixel in the color buffer. This texture file may be treated as an image raster by working with each texel individually. Since any OpenGL texture has texture coordinates ranging from 0.0 to 1.0, the coordinates of the center of the image are vec(0.5, 0.5) and you can increment texture coordinates by 1./ResS or 1./ResT to move from one texel to another horizontally or vertically. ResS and ResT are the sizes of the displayed image in pixel.
 
-Then if the filter favors a particular color, can adjust the color balance a bit. Or can also add a filter layer on top then blend it with the base image. __Hudson__ is a filter to make the image have an icy look, the slight tint and altered lighting give the images a colder feel. Therefore a radial gradient mask with blue to black is used for blending. With a lot trials, I found that "overlay" blending mode is best suitable to produce the vignetting effect (darkens the corners). _Overlay_ blending is a combination of _multiply_ and _screen_. It darkens the darker part and brightens the lighter part of the base image. And we can adjust the opacity of the top filtering layer to make the effect less strong.
+###III) Working with Fragment Shaders
 
-![color](http://littlecheesecake.files.wordpress.com/2013/02/screen-shot-2013-02-17-at-11-50-27-pm.png?w=300 "color")
-
-![blend mode](http://littlecheesecake.files.wordpress.com/2013/02/screen-shot-2013-02-18-at-10-06-04-am.png "blend mode")
-
-Basically that's it! Just simply three steps: 1) adjust B/C/S, 2) adjust color balance, 3) _overlay_ blend a radial gradient layer with some opacity. Let's see the result. Emm.. not exactly, but similar.
-
-![husdon_ps](http://littlecheesecake.files.wordpress.com/2013/02/husdon_ps1.png?w=300 "husdon_ps")
-
-### Implement using OpenGL ES Shaders
-
-So, I have three things to do: adjust the B/C/S, change the color balance and add a new layer of texture to overlay blend on top.
-
-__1. Adjust the B/C/S__
-
-In my previous post, I have discussed all the three processes, I just combine them into a single function in the Fragment Shader.
+The Fragment Shader is responsible for the per texel processing. The manipulation of the image pixels are handled merely using Fragment Shaders. Here is the simple fragment shader that just displays the texture:
 
 ```c
-vec3 BrightnessContrastSaturation(vec3 color, float brt, float con, float sat){
-    vec3 black = vec3(0., 0., 0.);
-    vec3 middle = vec3(0.5, 0.5, 0.5);
-    float luminance = dot(color, W);
-    vec3 gray = vec3(luminance, luminance, luminance);
-    vec3 brtColor = mix(black, color, brt);
-    vec3 conColor = mix(middle, brtColor, con);
-    vec3 satColor = mix(gray, conColor, sat);
-    return satColor;
-}
+precision mediump float;
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate; 
 
-```
-__2. Adjust color__
-
-I slightly adjust the single channel.
-
-```c
-//add blue
-vec3 blue_result = vec3(bcs_result.r, bcs_result.g, bcs_result.b * 1.1);
-```
-
-__3. Overlay blending__
-
-The function of overlay blending:
-
-![overlay_eqn](http://media.virbcdn.com/files/6a/f700a71dc09cc92e-overlay_eqn.png "overlay_eqn")
-
-```c
-vec3 ovelayBlender(vec3 Color, vec3 filter)
+void main()
 {
-    vec3 filter_result;
-    float luminance = dot(filter, W); 
-    if(luminance < 0.5)
-        filter_result = 2. * filter * Color;
-    else
-        filter_result = 1. - (1. - (2. *(filter - 0.5)))*(1. - Color); 
-    return filter_result;
+    gl_FragColor = (texture2D(u_Texture, v_TexCoordinate));
 }
 ```
 
-The result from shader implementation:
+####i) Color/Brightness/Hue
 
-![husdon_gl](http://littlecheesecake.files.wordpress.com/2013/02/husdon_gl.png?w=260 "husdon_gl")
+__Luminance__: luminance is defined as a linear combination of red, green and blue. The weight vector is a `const: vec3(0.2125, 0.7154, 0.0721).`
 
-###Some Other Exploration
+```c
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate; 
+void main()
 
-Similarly I create more filters to mimic the `Instagram®` style.
+{ 
+    const vec3 W = vec3(0.2125, 0.1754, 0.0721); 
+    vec3 irgb = texture2D(u_Texture, v_TexCoordinate).rgb; 
+    float luminance = dot(irgb, W); 
+    gl_FragColor = vec4(luminance, luminance, luminance, 1.);
+}
+```
 
-* I add noise at the edge of the top filter lay, to produce the over- exposured film effect in __Hefe__ filter
+![luminance](http://littlecheesecake.files.wordpress.com/2013/01/luminance.png?w=640)
 
-* Give high saturation to vibrate the color and to emphasize the dark corners to get __X-pro__
+__Hue shifting__: the RGB is first converted into the HSV color space, the hue shifting is just a adjustment of the h value in degree.The code is a bit long, check it out in the source code directory.
 
-* Reduce the saturation and add a lot of red and yellow, to give the feel of __Rise__ filter
-
-* Add a red to purple filter to get the __Toaster__ effect
+![hueshift](http://littlecheesecake.files.wordpress.com/2013/01/hueshift.png?w=640)
 
 
-![hefe_gl](http://littlecheesecake.files.wordpress.com/2013/02/hefe_gl.png?w=160 "hefe_gl")  ![xpro_gl](http://littlecheesecake.files.wordpress.com/2013/02/xpro_gl.png?w=160 "xpro_gl")  ![rise_gl](http://littlecheesecake.files.wordpress.com/2013/02/rise_gl.png?w=160 "rise_gl")  ![toaster_gl](http://littlecheesecake.files.wordpress.com/2013/02/toaster_gl.png?w=160 "toaster_gl")
+__Negative__: negative is obtained by subtracting the color of each pixel from the white
 
-###Closure
+```c
+precision mediump float;
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate; 
 
-This is so fun! Weeks ago I was told by my friend of the words 
+void main()
+{
+    float T = 1.0; 
+    vec2 st = v_TexCoordinate.st;
+    vec3 irgb = texture2D(u_Texture, st).rgb;
+    vec3 neg = vec3(1., 1., 1.)-irgb;
+    gl_FragColor = vec4(mix(irgb,neg, T), 1.);
+}
+```
 
->__CONNECTING THE DOTS__ 
+![negative](http://littlecheesecake.files.wordpress.com/2013/01/negative.png?w=640)
 
-I start to realize what it means. Find the things you are good at and try to make connection and produce better work on it. I will definitely continue with this work. I am also glad to share with anyone who are interested in this area, find the full implementation of the basic image processing using OpenGL ES Shaders in Android from my github.
+__Brightness__: add or subtract black can be used to adjust the brightness of the image
 
-####Reference
-[1] [Texture in OpenGL ES](http://www.learnopengles.com/android-lesson-four-introducing-basic-texturing/)
+```c
+precision mediump float;
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate;
+void main()
+{
+    float T = 2.0;
+    vec2 st = v_TexCoordinate.st;
+    vec3 irgb = texture2D(u_Texture, st).rgb;
+    vec3 black = vec3(0., 0., 0.);
+    gl_FragColor = vec4(mix(black, irgb, T), 1.);
+}
+```
 
-[2] [Image Processing using Shaders](http://books.google.com.sg/books/about/Graphics_Shaders.html?id=29YSpc-aOlgC&redir_esc=y)
+![brightness](http://littlecheesecake.files.wordpress.com/2013/01/brightness.png?w=640)
+
+__Contrast__: use a gray image as a base image, and mix with the color image. It can be made either move the color component towards the gray or away from. That is how the contrast is adjusted.
+
+```c
+precision mediump float;
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate;
+
+void main()
+{
+    float T = 2.0;
+    vec2 st = v_TexCoordinate.st;
+    vec3 irgb = texture2D(u_Texture, st).rgb;
+    vec3 target = vec3(0.5, 0.5, 0.5);
+    gl_FragColor = vec4(mix(target, irgb, T), 1.);
+}
+```
+
+![contrast](http://littlecheesecake.files.wordpress.com/2013/01/contrast.png?w=640)
+
+__Saturation__: mix the color and grayscale image from the luminance example, can obtain a saturated image
+
+```c
+precision mediump float;
+uniform sampler2D u_Texture;
+varying vec2 v_TexCoordinate; 
+const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+
+void main()
+{
+    float T = 0.5;
+    vec2 st = v_TexCoordinate.st;
+    vec3 irgb = texture2D(u_Texture, st).rgb; 
+    float luminance = dot(irgb, W);
+    vec3 target = vec3(luminance, luminance, luminance); 
+    gl_FragColor = vec4(mix(target, irgb, T), 1.);
+}
+```
+
+![saturation](http://littlecheesecake.files.wordpress.com/2013/01/saturation.png?w=640)
+
+####ii) Warping/Distortion
+
+The __twirl__ transformation rotates the image around a given anchor point(xc, yc) by an angle that varies across the space from a value alpha at the center, decreasing linearly with the radial distance as it proceeds toward a limiting radius r. There are lots of other transformation worthy being tried.
+
+![twirl](http://littlecheesecake.files.wordpress.com/2013/01/twirl.png?w=640)
+
+####iii) Image processing/vision
+
+__Edge detection__: Sobel filter[3] is used for edge detection. The manipulation of neighboring pixels are required. Here we need to know the exact width and height of the texture displayed in pixel. However I haven't figure out how to do this. So I cheated a bit, just use the screen height (720 px in this case) since the image is assumed to fit in the window, which is not exactly true.
+
+![edge](http://littlecheesecake.files.wordpress.com/2013/01/edge.png?w=640)
+
+__Blurring__: 3x3 Gaussian filter s used for blurring in this case. The result is not a obvious since a small radius is used.
+
+![blurring](http://littlecheesecake.files.wordpress.com/2013/01/blurring.png?w=640)
+
+####iv) Artistic Effect
+
+__Embossing__: the embossing image is obtained from applying the edge detection luminanced image and highlighting the images differently depending on the edges' angle.
+
+
+![emboss](http://littlecheesecake.files.wordpress.com/2013/01/emboss.png?w=640)
+
+__Toon__ like image: steps includes -Calculate the luminance of each pixel, apply the Sobel filter to detect edge and get a magnitude, if magnitude is larger than the threshold, color the pixel black, else quantize the pixel's color.
+
+
+![toon](http://littlecheesecake.files.wordpress.com/2013/01/toon.png?w=640)
+
+
+###Closure:
+
+These are all simple image manipulations that can be easily done by software like Photoshop. The interesting thing is that it is now running on the GPU of the embedded devices. The advances of GPGPU might not be seen from here, but I will try to do some efficiency evaluations and continue with my "serious" research to see how it will help.
+
+[1]:http://books.google.com.sg/books/about/Graphics_Shaders.html?id=29YSpc-aOlgC&redir_esc=y
+[2]:http://www.learnopengles.com/android-lesson-four-introducing-basic-texturing/
+[3]:http://homepages.inf.ed.ac.uk/rbf/HIPR2/sobel.htm
